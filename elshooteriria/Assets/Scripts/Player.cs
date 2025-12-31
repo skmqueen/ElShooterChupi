@@ -5,12 +5,17 @@ using UnityEngine;
 
 public class Player : MonoBehaviour
 {
-
+    public Camera cameraPrincipal;
     public float velocidadJugador = 5f;
     public float saltoJugador = 2f;
     public float gravedad = -20f;
+    public float velocidadCorrer = 10f; 
+    public float sensibilidadRotacion = 200f;
+
+    private float anguloVertCamara;
 
     Vector3 moveInput = Vector3.zero;
+    Vector3 rotationInput = Vector3.zero;
     CharacterController characterController;
 
     private void Awake () {
@@ -26,6 +31,7 @@ public class Player : MonoBehaviour
     void Update()
     {
         Movimiento();
+        Mirar();
     }
 
  private void Movimiento()
@@ -42,6 +48,15 @@ public class Player : MonoBehaviour
         moveInput.x *= velocidadJugador;
         moveInput.z *= velocidadJugador;
 
+        if (Input.GetButton("Run"))
+        {
+            moveInput = transform.TransformDirection(moveInput) * velocidadCorrer;
+        }
+        else
+        {
+            moveInput= transform.TransformDirection(moveInput) * velocidadJugador;
+        }
+
         if (Input.GetButtonDown("Jump"))
         {
             moveInput.y = Mathf.Sqrt(saltoJugador * -2f * gravedad);
@@ -52,6 +67,17 @@ public class Player : MonoBehaviour
     characterController.Move(moveInput * Time.deltaTime);
 }
 
+private void Mirar()
+{
+    rotationInput.x = Input.GetAxis("Mouse X") * sensibilidadRotacion * Time.deltaTime;
+    rotationInput.y = Input.GetAxis("Mouse Y") * sensibilidadRotacion * Time.deltaTime;
+    
+    anguloVertCamara = anguloVertCamara + rotationInput.y;
+    anguloVertCamara = Mathf.Clamp (anguloVertCamara, -70, 70);
+
+    transform.Rotate(Vector3.up * rotationInput.x);
+    cameraPrincipal.transform.localRotation = Quaternion.Euler(-anguloVertCamara, 0f, 0f);
+}
 
 
 }
