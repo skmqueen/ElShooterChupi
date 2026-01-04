@@ -1,6 +1,6 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
-//Agregamos Character Controller
 [RequireComponent(typeof(CharacterController))]
 
 public class Player : MonoBehaviour
@@ -12,6 +12,10 @@ public class Player : MonoBehaviour
     public float velocidadCorrer = 10f; 
     public float sensibilidadRotacion = 200f;
 
+    public int vidasMaximas = 5;
+    private int vidasActuales;
+    public ControladorVidas controladorVidas;
+
     private float anguloVertCamara;
 
     Vector3 moveInput = Vector3.zero;
@@ -22,10 +26,19 @@ public class Player : MonoBehaviour
         characterController = GetComponent<CharacterController>();
     }
 
-
     void Start()
     {
+        vidasActuales = vidasMaximas;
         
+        if (controladorVidas == null)
+        {
+            controladorVidas = FindFirstObjectByType<ControladorVidas>();
+        }
+        
+        if (controladorVidas != null)
+        {
+            controladorVidas.ActualizarVidas(vidasActuales, vidasMaximas);
+        }
     }
 
     void Update()
@@ -34,50 +47,77 @@ public class Player : MonoBehaviour
         Mirar();
     }
 
- private void Movimiento()
-{
-    if (characterController.isGrounded)
+    private void Movimiento()
     {
-        if (moveInput.y < 0)
+        if (characterController.isGrounded)
         {
-            moveInput.y = -2f;
-        }
-        moveInput.x = Input.GetAxis("Horizontal");
-        moveInput.z = Input.GetAxis("Vertical");
-        moveInput = transform.TransformDirection(moveInput);
-        moveInput.x *= velocidadJugador;
-        moveInput.z *= velocidadJugador;
+            if (moveInput.y < 0)
+            {
+                moveInput.y = -2f;
+            }
+            moveInput.x = Input.GetAxis("Horizontal");
+            moveInput.z = Input.GetAxis("Vertical");
+            moveInput = transform.TransformDirection(moveInput);
+            moveInput.x *= velocidadJugador;
+            moveInput.z *= velocidadJugador;
 
-        if (Input.GetButton("Run"))
-        {
-            moveInput = transform.TransformDirection(moveInput) * velocidadCorrer;
-        }
-        else
-        {
-            moveInput= transform.TransformDirection(moveInput) * velocidadJugador;
+            if (Input.GetButton("Run"))
+            {
+                moveInput = transform.TransformDirection(moveInput) * velocidadCorrer;
+            }
+            else
+            {
+                moveInput= transform.TransformDirection(moveInput) * velocidadJugador;
+            }
+
+            if (Input.GetButtonDown("Jump"))
+            {
+                moveInput.y = Mathf.Sqrt(saltoJugador * -2f * gravedad);
+            }
         }
 
-        if (Input.GetButtonDown("Jump"))
+        moveInput.y += gravedad * Time.deltaTime;
+        characterController.Move(moveInput * Time.deltaTime);
+    }
+
+    private void Mirar()
+    {
+        rotationInput.x = Input.GetAxis("Mouse X") * sensibilidadRotacion * Time.deltaTime;
+        rotationInput.y = Input.GetAxis("Mouse Y") * sensibilidadRotacion * Time.deltaTime;
+        
+        anguloVertCamara = anguloVertCamara + rotationInput.y;
+        anguloVertCamara = Mathf.Clamp (anguloVertCamara, -70, 70);
+
+        transform.Rotate(Vector3.up * rotationInput.x);
+        cameraPrincipal.transform.localRotation = Quaternion.Euler(-anguloVertCamara, 0f, 0f);
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("ProyectilEnemigo"))
         {
-            moveInput.y = Mathf.Sqrt(saltoJugador * -2f * gravedad);
+            RecibirDanio(1);
+            Destroy(other.gameObject);
         }
     }
 
-    moveInput.y += gravedad * Time.deltaTime;
-    characterController.Move(moveInput * Time.deltaTime);
-}
+    public void RecibirDanio(int cantidad)
+    {
+        vidasActuales -= cantidad;
+        
+        if (controladorVidas != null)
+        {
+            controladorVidas.ActualizarVidas(vidasActuales, vidasMaximas);
+        }
 
-private void Mirar()
-{
-    rotationInput.x = Input.GetAxis("Mouse X") * sensibilidadRotacion * Time.deltaTime;
-    rotationInput.y = Input.GetAxis("Mouse Y") * sensibilidadRotacion * Time.deltaTime;
-    
-    anguloVertCamara = anguloVertCamara + rotationInput.y;
-    anguloVertCamara = Mathf.Clamp (anguloVertCamara, -70, 70);
+        if (vidasActuales <= 0)
+        {
+            Morir();
+        }
+    }
 
-    transform.Rotate(Vector3.up * rotationInput.x);
-    cameraPrincipal.transform.localRotation = Quaternion.Euler(-anguloVertCamara, 0f, 0f);
-}
-
-
+    private void Morir()
+    {
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
 }
