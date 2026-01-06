@@ -12,7 +12,7 @@ public class EnemigoIA : MonoBehaviour
     public float velocidadProyectil = 20f;
     public float cadenciaDisparo = 2f;
     private float tiempoUltimoDisparo;
-    public float rangoDeteccion = 20f;
+    public float rangoDisparo = 20f; // Renombrado para mayor claridad
 
     private void Start()
     {
@@ -32,28 +32,31 @@ public class EnemigoIA : MonoBehaviour
 
     private void Update()
     {
+        // El enemigo SIEMPRE persigue al jugador
         float distanciaAlJugador = Vector3.Distance(transform.position, jugador.position);
-
-        if (distanciaAlJugador <= rangoDeteccion)
+        
+        // Calcular dirección hacia el jugador
+        Vector3 direccion = (jugador.position - transform.position).normalized;
+        direccion.y = 0;
+        
+        // Rotar hacia el jugador
+        if (direccion != Vector3.zero)
         {
-            Vector3 direccion = (jugador.position - transform.position).normalized;
-            direccion.y = 0;
-            if (direccion != Vector3.zero)
-            {
-                Quaternion rotacionObjetivo = Quaternion.LookRotation(direccion);
-                transform.rotation = Quaternion.Slerp(transform.rotation, rotacionObjetivo, Time.deltaTime * 5f);
-            }
+            Quaternion rotacionObjetivo = Quaternion.LookRotation(direccion);
+            transform.rotation = Quaternion.Slerp(transform.rotation, rotacionObjetivo, Time.deltaTime * 5f);
+        }
 
-            if (distanciaAlJugador > distanciaMinima)
-            {
-                transform.position += direccion * velocidadMovimiento * Time.deltaTime;
-            }
+        // Moverse hacia el jugador (pero detenerse a distancia mínima)
+        if (distanciaAlJugador > distanciaMinima)
+        {
+            transform.position += direccion * velocidadMovimiento * Time.deltaTime;
+        }
 
-            if (Time.time >= tiempoUltimoDisparo + cadenciaDisparo)
-            {
-                Disparar();
-                tiempoUltimoDisparo = Time.time;
-            }
+        // Disparar solo si está dentro del rango de disparo
+        if (distanciaAlJugador <= rangoDisparo && Time.time >= tiempoUltimoDisparo + cadenciaDisparo)
+        {
+            Disparar();
+            tiempoUltimoDisparo = Time.time;
         }
     }
 
@@ -98,7 +101,7 @@ public class EnemigoIA : MonoBehaviour
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, rangoDeteccion);
+        Gizmos.DrawWireSphere(transform.position, rangoDisparo);
 
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, distanciaMinima);

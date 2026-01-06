@@ -9,7 +9,7 @@ public class ControladorVidas : MonoBehaviour
     {
         if (textoVidas != null)
         {
-            textoVidas.text = "Vidas: " + vidasActuales + " / " + vidasMaximas;
+            textoVidas.text = "Vidas: " + vidasActuales;
         }
     }
 }

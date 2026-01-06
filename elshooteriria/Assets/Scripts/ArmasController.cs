@@ -1,7 +1,6 @@
 using UnityEngine;
 using System.Collections;
 
-
 public class ArmasController : MonoBehaviour
 {
     public float rangoDisparo = 200;
@@ -21,28 +20,35 @@ public class ArmasController : MonoBehaviour
     public float tiempoRecarga = 2f;
     private bool recargando = false;
 
+    // Referencia al controlador de munición
+    private ControladorMunicion controladorMunicion;
 
     private void Awake()
     {
         balasActuales = maxBalas;
     }
 
-
-
     private void Start()
     {
-            camaraPlayer= GameObject.FindGameObjectWithTag("MainCamera").transform;
-
+        camaraPlayer = GameObject.FindGameObjectWithTag("MainCamera").transform;
+        
+        // Buscar el controlador de munición en la escena
+        controladorMunicion = FindObjectOfType<ControladorMunicion>();
+        
+        // Actualizar UI inicial
+        if (controladorMunicion != null)
+        {
+            controladorMunicion.ActualizarMunicion(balasActuales, maxBalas);
+        }
     }
 
-    private void Update ()
+    private void Update()
     {
-        
         if (Input.GetButtonDown("Fire1"))
         {
-        IntentoDisparo();
-        Retroceso(); 
-        VolverAPosicion();
+            IntentoDisparo();
+            Retroceso(); 
+            VolverAPosicion();
         }
         if (Input.GetKeyDown(KeyCode.R))
         {
@@ -51,20 +57,27 @@ public class ArmasController : MonoBehaviour
     }
 
     private bool IntentoDisparo()
-{
-    if (recargando) return false;
-
-    if (ultimoDisparo + disparoVelocidad < Time.time)
     {
-        if (balasActuales > 0)
+        if (recargando) return false;
+
+        if (ultimoDisparo + disparoVelocidad < Time.time)
         {
-            Disparo();
-            balasActuales--;
-            return true;
+            if (balasActuales > 0)
+            {
+                Disparo();
+                balasActuales--;
+                
+                // Actualizar UI de munición
+                if (controladorMunicion != null)
+                {
+                    controladorMunicion.ActualizarMunicion(balasActuales, maxBalas);
+                }
+                
+                return true;
+            }
         }
+        return false;
     }
-    return false;
-}
 
     private void Disparo()
     {
@@ -79,7 +92,6 @@ public class ArmasController : MonoBehaviour
             GameObject mancha = Instantiate(disparoMancha, hit.point, Quaternion.LookRotation(hit.normal));
             Destroy(mancha, 4f);
 
-            // NUEVO: Detectar si le dimos a un enemigo
             EnemigoIA enemigo = hit.collider.GetComponent<EnemigoIA>();
             if (enemigo != null)
             {
@@ -90,43 +102,47 @@ public class ArmasController : MonoBehaviour
         ultimoDisparo = Time.time;
     }
 
-        private void Retroceso()
-        {
+    private void Retroceso()
+    {
         float divisionRetroceso = 50f; 
         transform.localPosition = transform.forward * (retroceso / divisionRetroceso); 
         transform.localRotation *= Quaternion.Euler(2f, 0f, 0f);
-        }
-
-        private void VolverAPosicion() 
-        { transform.localPosition = Vector3.Lerp(transform.localPosition, posicionInicial, Time.deltaTime * velocidadRetorno); 
-        transform.localRotation = Quaternion.Lerp(transform.localRotation, rotacionInicial, Time.deltaTime * velocidadRetorno); 
-        }
-
-IEnumerator Recarga()
-{
-    recargando = true;
-    float tiempoTranscurrido = 0f;
-    float duracionAnimacion = tiempoRecarga * 0.3f; // Solo usa 30% del tiempo total
-    
-    while (tiempoTranscurrido < duracionAnimacion)
-    {
-        tiempoTranscurrido += Time.deltaTime;
-        float progreso = tiempoTranscurrido / duracionAnimacion;
-        
-        // Movimiento vertical: abajo y arriba en una sola curva
-        float movimiento = Mathf.Sin(progreso * Mathf.PI) * -0.3f;
-        
-        transform.localPosition = posicionInicial + new Vector3(0f, movimiento, 0f);
-        
-        yield return null;
     }
-    
-    transform.localPosition = posicionInicial;
-    
-    balasActuales = maxBalas;
-    recargando = false;
-}
 
+    private void VolverAPosicion() 
+    { 
+        transform.localPosition = Vector3.Lerp(transform.localPosition, posicionInicial, Time.deltaTime * velocidadRetorno); 
+        transform.localRotation = Quaternion.Lerp(transform.localRotation, rotacionInicial, Time.deltaTime * velocidadRetorno); 
+    }
 
-
+    IEnumerator Recarga()
+    {
+        recargando = true;
+        float tiempoTranscurrido = 0f;
+        float duracionAnimacion = tiempoRecarga * 0.3f;
+        
+        while (tiempoTranscurrido < duracionAnimacion)
+        {
+            tiempoTranscurrido += Time.deltaTime;
+            float progreso = tiempoTranscurrido / duracionAnimacion;
+            
+            float movimiento = Mathf.Sin(progreso * Mathf.PI) * -0.3f;
+            
+            transform.localPosition = posicionInicial + new Vector3(0f, movimiento, 0f);
+            
+            yield return null;
+        }
+        
+        transform.localPosition = posicionInicial;
+        
+        balasActuales = maxBalas;
+        
+        // Actualizar UI después de recargar
+        if (controladorMunicion != null)
+        {
+            controladorMunicion.ActualizarMunicion(balasActuales, maxBalas);
+        }
+        
+        recargando = false;
+    }
 }
